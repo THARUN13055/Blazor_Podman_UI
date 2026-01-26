@@ -1,0 +1,94 @@
+@using Blazor.Models
+@using Blazor.Models.UI
+@page "/"
+@rendermode InteractiveServer
+@inject Blazor.Services.DeploymentOrchestrator Orchestrator
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+
+    <MudText Typo="Typo.h4" GutterBottom="true">
+        Edge Deployment Dashboard
+    </MudText>
+
+    <!-- Podman Test -->
+    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RunTest">
+        Run Podman Version
+    </MudButton>
+
+    <MudDivider Class="my-4" />
+
+    <!-- Deployment -->
+    <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="RunDeployment">
+        Deploy Image
+    </MudButton>
+
+    <MudText Class="mt-2" Typo="Typo.subtitle1">
+        @CurrentStep
+    </MudText>
+
+    <MudPaper Class="mt-4 pa-3" Elevation="2" Style="max-height:300px; overflow:auto">
+        @foreach (var line in Logs)
+        {
+            <div>@line</div>
+        }
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private List<string> Logs = new();
+    private string CurrentStep = string.Empty;
+
+    private async Task RunTest()
+    {
+        Logs.Clear();
+        CurrentStep = "Running podman version...";
+        StateHasChanged();
+
+        await Orchestrator.TestPodmanAsync(line =>
+        {
+            Logs.Add(line);
+            InvokeAsync(StateHasChanged);
+        });
+
+        CurrentStep = "Podman version check completed";
+    }
+
+    private async Task RunDeployment()
+    {
+        Logs.Clear();
+        CurrentStep = "Starting deployment...";
+        StateHasChanged();
+
+        var request = new DeploymentRequest
+        {
+            SourceImage = Environment.GetEnvironmentVariable("SOURCE_IMAGE") ?? string.Empty,
+            TargetImage = Environment.GetEnvironmentVariable("TARGET_IMAGE") ?? string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(request.SourceImage) ||
+            string.IsNullOrWhiteSpace(request.TargetImage))
+        {
+            Logs.Add("❌ SOURCE_IMAGE or TARGET_IMAGE environment variable is missing");
+            CurrentStep = "Configuration error";
+            return;
+        }
+
+        var success = await Orchestrator.DeployAsync(
+            request,
+            step =>
+            {
+                CurrentStep = step;
+                InvokeAsync(StateHasChanged);
+            },
+            log =>
+            {
+                Logs.Add(log);
+                InvokeAsync(StateHasChanged);
+            });
+
+        CurrentStep = success
+            ? "✅ Deployment successful"
+            : "❌ Deployment failed";
+    }
+}

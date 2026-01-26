@@ -1,0 +1,73 @@
+@page "/deployments"
+@inject Blazor.Services.Persistence.IDeploymentRepository Repo
+
+@using Blazor.Models.Persistence
+@using MudBlazor
+
+<MudText Typo="Typo.h5">Deployment History</MudText>
+
+<MudTable Items="_deployments"
+          Hover="true"
+          Dense="true"
+          RowClick="OnRowClick">
+
+    <HeaderContent>
+        <MudTh>Application</MudTh>
+        <MudTh>Version</MudTh>
+        <MudTh>Station</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Started</MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd>@context.Application</MudTd>
+        <MudTd>@context.Version</MudTd>
+        <MudTd>@context.Station</MudTd>
+        <MudTd>
+            <MudChip T="string"
+                     Color="@(context.Status == "Success" ? Color.Success : Color.Error)">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd>@context.StartedAt.ToLocalTime()</MudTd>
+    </RowTemplate>
+
+</MudTable>
+
+
+<MudDialog @bind-IsVisible="_showLogs">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Deployment Logs</MudText>
+
+        <MudPaper Class="pa-2" Style="max-height:400px;overflow:auto;">
+            @foreach (var log in _logs)
+            {
+                <div>
+                    <b>@log.Timestamp.ToLocalTime()</b>
+                    [@log.Level] @log.Message
+                </div>
+            }
+        </MudPaper>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private IEnumerable<DeploymentEntity> _deployments = [];
+    private IEnumerable<DeploymentLogEntity> _logs = [];
+    private bool _showLogs;
+    @* private MudTable<DeploymentEntity>? _table; *@
+
+    protected override async Task OnInitializedAsync()
+    {
+        _deployments = await Repo.GetDeploymentsAsync();
+    }
+
+    private async Task OnRowClick(TableRowClickEventArgs<DeploymentEntity> args)
+    {
+        if (args.Item != null)
+        {
+            _logs = await Repo.GetLogsAsync(args.Item.Id);
+            _showLogs = true;
+        }
+    }
+}
