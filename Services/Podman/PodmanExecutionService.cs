@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using Blazor.Models;
 using Blazor.Models.Podman;
-
 
 namespace Blazor.Services;
 
@@ -9,8 +7,9 @@ public class PodmanExecutionService
 {
     public async Task<PodmanCommandResult> RunAsync(
         string arguments,
-        Action<string> onOutput,
-        Action<string> onError)
+        Action<string> onStdout,
+        Action<string> onStderr,
+        string? stdin = null)
     {
         var psi = new ProcessStartInfo
         {
@@ -18,25 +17,37 @@ public class PodmanExecutionService
             Arguments = arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = stdin != null,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        var process = new Process { StartInfo = psi };
+        using var process = new Process
+        {
+            StartInfo = psi,
+            EnableRaisingEvents = true
+        };
 
         process.OutputDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
-                onOutput(e.Data);
+                onStdout(e.Data);
         };
 
         process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
-                onError(e.Data);
+                onStderr(e.Data);
         };
 
         process.Start();
+
+        if (stdin != null)
+        {
+            await process.StandardInput.WriteLineAsync(stdin);
+            process.StandardInput.Close();
+        }
+
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
@@ -49,4 +60,3 @@ public class PodmanExecutionService
         };
     }
 }
-

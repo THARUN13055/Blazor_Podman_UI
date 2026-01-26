@@ -18,3 +18,11 @@ CREATE TABLE deployment_logs (
     message TEXT NOT NULL
 );
 
+CREATE TABLE deployment_steps (
+    id BIGSERIAL PRIMARY KEY,
+    deployment_id UUID NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
+    step INT NOT NULL,
+    status TEXT NOT NULL, -- Pending | Running | Success | Failed
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ
+);

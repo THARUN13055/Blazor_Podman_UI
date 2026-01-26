@@ -12,4 +12,8 @@ public interface IDeploymentRepository
     Task<IEnumerable<DeploymentEntity>> GetDeploymentsAsync();
     Task<IEnumerable<DeploymentLogEntity>> GetLogsAsync(Guid deploymentId);
 
+    Task UpsertStepAsync(DeploymentStepEntity step);
+    Task<IEnumerable<DeploymentStepEntity>> GetStepsAsync(Guid deploymentId);
+
+
 }

@@ -131,4 +131,39 @@ public class DeploymentRepository : IDeploymentRepository
         );
     }
 
+    public async Task UpsertStepAsync(DeploymentStepEntity step)
+    {
+        const string sql = """
+            INSERT INTO deployment_steps
+                (deployment_id, step, status, started_at, finished_at)
+            VALUES
+                (@DeploymentId, @Step, @Status, @StartedAt, @FinishedAt)
+            ON CONFLICT (deployment_id, step)
+            DO UPDATE SET
+                status = EXCLUDED.status,
+                started_at = EXCLUDED.started_at,
+                finished_at = EXCLUDED.finished_at;
+        """;
+
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.ExecuteAsync(sql, step);
+    }
+
+    public async Task<IEnumerable<DeploymentStepEntity>> GetStepsAsync(Guid deploymentId)
+    {
+        const string sql = """
+            SELECT
+                deployment_id AS DeploymentId,
+                step,
+                status,
+                started_at AS StartedAt,
+                finished_at AS FinishedAt
+            FROM deployment_steps
+            WHERE deployment_id = @deploymentId
+            ORDER BY step;
+        """;
+
+        await using var conn = new NpgsqlConnection(_connectionString);
+        return await conn.QueryAsync<DeploymentStepEntity>(sql, new { deploymentId });
+    }
 }
