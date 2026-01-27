@@ -1,0 +1,71 @@
+@page "/registry"
+@rendermode InteractiveServer
+@using Blazor.Models.Registry
+@inject Blazor.Services.Registry.RegistrySearchService Registry
+
+<h3>Registry Browser</h3>
+
+<input class="form-control"
+       placeholder="Search images (e.g. nginx, alpine)"
+       @bind="Query"
+       @bind:event="oninput" />
+
+<button class="btn btn-primary mt-2"
+        @onclick="OnSearchClicked"
+        disabled="@Loading">
+    Search
+</button>
+
+@if (Loading)
+{
+    <p>Searching registry...</p>
+}
+
+@if (!Loading && Results.Any())
+{
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Official</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var img in Results)
+            {
+                <tr>
+                    <td>@img.Name</td>
+                    <td>@img.Description</td>
+                    <td>@(img.Official ? "Yes" : "No")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (!Loading && Searched && !Results.Any())
+{
+    <p>No results found.</p>
+}
+
+@code {
+    private string Query = "";
+    private bool Loading;
+    private bool Searched;
+    private List<RegistryImage> Results = new();
+
+    private async Task OnSearchClicked()
+    {
+        if (string.IsNullOrWhiteSpace(Query))
+            return;
+
+        Loading = true;
+        Searched = true;
+        Results.Clear();
+
+        Results = await Registry.SearchAsync(Query);
+
+        Loading = false;
+    }
+}

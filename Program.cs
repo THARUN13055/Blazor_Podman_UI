@@ -2,6 +2,7 @@ using MudBlazor.Services;
 using Blazor.Components;
 using Blazor.Services;
 using Blazor.Services.Persistence;
+using Blazor.Services.Registry;
 
 // 🔹 Load .env ONLY for local development
 if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
@@ -22,6 +23,8 @@ builder.Services.AddMudServices();
 builder.Services.AddSingleton<PodmanExecutionService>();
 builder.Services.AddSingleton<IDeploymentRepository, DeploymentRepository>();
 builder.Services.AddSingleton<DeploymentOrchestrator>();
+builder.Services.AddSingleton<RegistrySearchService>();
+
 
 var app = builder.Build();
 
